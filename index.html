@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%233f486c'/%3E%3Cpath d='M9 23 L16 8 L23 23 M12 18.2 H20' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
+<title>卖方怎样把方法放进买方工作流？ · AlphaClaw</title>
+<meta name="alpha:block-order" content="tttttt">
+
+
+<script>document.documentElement.classList.add("js");</script>
+<style>
+/* ============================================================
+   AlphaClaw 研究报告 · 投资决策备忘录版式
+   设计基线：冷调绀灰纸面 / 黑体标题 + 楷体阅读流 + 无衬线数据区 / 绀青骨架 + 檀赭文字强调 + 暖底内容焦点 / 多级卡面与细线
+   分工口径：暖 = 内容焦点（结论卡、引述框、图卡、表内脚注），冷 = 纸面结构（页面底、骨架线、交互态）
+   版式能力：
+   - 保留侧边目录 + 滚动定位（aria-current），长报告可导航
+   - 表格为静态呈现（无排序与复制控件）
+   - 图表保留「图表 / 数据表」双视图与断网降级
+   - 阅读进度条、章节/图表入场动效（渐进增强，JS 关闭或 reduced-motion 下内容默认可见）
+   - 打印样式（A4 分页、隐藏交互控件与动效、暖底覆白）
+   字体：全部使用系统字体（黑体栈负责标题，楷体栈只负责正文阅读流），保证离线/换机一致，不加载任何 web font
+   ============================================================ */
+:root{
+  /* 色板：绀青 #3f486c + 冷调绀灰 #f2f3f7（与绀青同相的冷底，文字/语义色全部冻结不变）。
+     纸面、卡面、结论卡、文字、边线分别拉开层级；红绿只承担语义；
+     绀青管骨架结构与交互态，檀赭管一切文字强调，青碧仅作图表第 3 系列数据色；
+     暖底家族只用于内容焦点卡（结论卡/引述框/图卡/表内脚注），不上纸面。 */
+  --paper:#f2f3f7;          /* 冷调绀灰页面底：与绀青同相，较 v1.11 提浅一档减灰底压迫感 */
+  --surface:#fbfbfd;        /* 一级卡面：表格、引用容器等冷面卡，亮于页面底 */
+  --surface-raised:#ffffff; /* 二级卡面：表头条等需要进一步提亮的冷面位 */
+  --surface-2:#e8eaf1;      /* 表头/次级底色：与普通卡面保留明度差 */
+  --ink:#1d2330;
+  --ink-2:#3f4656;
+  --muted:#625f68;          /* 冷灰底 5.49:1、卡面 6.05:1，达 WCAG AA */
+  --faint:#625f68;
+  --hint:#a3abb4;           /* 仅用于 placeholder，不承担正文信息 */
+  --rule:#d3d6e0;
+  --rule-2:#dee1e9;
+  --rule-strong:#b9bdcc;
+  --hover:#f1f2f7;
+  --accent:#3f486c;         /* 绀青：结论卡竖线/焦点态/页签选中态等骨架与交互，不再承担文字强调 */
+  --accent-2:#2b3352;
+  --accent-mid:#59617f;     /* 次级灰蓝：小字/进度/图表辅助 */
+  --accent-line:rgba(63,72,108,.28);
+  --accent-soft:#e2e3ea;
+  --up:#a8342b;             /* 涨（仅用于数字语气，不做装饰） */
+  --down:#2f6b57;           /* 跌 */
+  --accent-b:#8a4a3e;       /* 檀赭：一切文字强调（kicker/章节号/表题/标记带文字），白底 6.71:1、冷灰底 6.05:1 */
+  --accent-b-deep:#6e392f;  /* 檀赭深：链接、选区文字，9.17:1 */
+  --accent-b-bg:#efdcd4;    /* 暖赭浅底：lead 标记带、mark-key 标记带、降级提示底 */
+  --accent-b-line:#d8c0b8;  /* 檀赭细线：章节号延长线、降级提示边线 */
+  --accent-c:#27616f;       /* 青碧：仅图表第 3 系列数据色，不入正文文字，冷灰底对比度 6.09:1 */
+  /* 暖底家族（内容焦点卡专用，打印时覆白） */
+  --warm-raised:#f7f4ed;    /* 鱼肚白：结论卡底、图表绘图区底 */
+  --warm-card:#faf7f0;      /* 暖白：图卡本体 */
+  --warm-head:#f1ece3;      /* 暖米：图表头、图表数据表表头 */
+  --warm-quote:#f3ede3;     /* 暖米：引述提示框底 */
+  --warm-edge:#e2d8c9;      /* 暖描边：结论卡/绘图区框线 */
+  --warm-rule:#e2d9ca;      /* 暖细线：图表头分隔、数据表行线、脚注上边线 */
+  --warm-rule-2:#e9dfd3;    /* 暖细线浅档：结论卡内分隔 */
+  --warm-muted:#756a61;     /* 卡内暖灰文字：结论卡编号/脚注/KPI 标签 */
+  --grid:#ebe8e1;           /* 图表网格线（暖，与 renderer 同步） */
+  --overlay:rgba(18,23,28,.45);
+  --axis:#cdc8bc;           /* 图表轴线/刻度（暖，与 renderer 同步） */
+  /* 字体：全部系统字体，离线/换机一致；黑体栈负责标题与锐度，楷体栈只负责正文阅读流；
+     边界：楷体不进表格/KPI/meta/目录/控件等数字密集区（楷体数字排版不齐） */
+  --serif:Georgia,"Times New Roman","Songti SC","Noto Serif CJK SC","Source Han Serif SC",STSong,SimSun,serif;
+  --heiti:"PingFang SC","Heiti SC","Microsoft YaHei","Noto Sans CJK SC",sans-serif;
+  --kaiti:"Kaiti SC",KaiTi,STKaiti,"AR PL UKai CN",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+body.market-us{
+  /* 美股本地化：绿涨红跌；默认仍为 A 股/中国语境红涨绿跌 */
+  --up:#2f6b57;
+  --down:#a8342b;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:var(--sans);font-size:15.75px;line-height:1.78;font-variant-numeric:tabular-nums;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+::selection{background:var(--accent-b-bg);color:var(--accent-b-deep)}
+a{color:var(--accent-b-deep);text-decoration:none;border-bottom:1px solid var(--accent-line)}
+a:hover{border-bottom-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.skip-link{position:absolute;left:-9999px;top:0;background:var(--surface);border:1px solid var(--rule);padding:8px 14px;z-index:100}
+.skip-link:focus{left:12px;top:10px}
+
+/* ---- 阅读进度（绀青细线，滚动时增长） ---- */
+.read-progress{
+  position:fixed;left:0;top:0;height:2px;width:100%;transform-origin:0 50%;transform:scaleX(0);
+  background:linear-gradient(90deg,var(--accent),var(--accent-mid));z-index:120;pointer-events:none;
+  transition:transform .12s linear;
+}
+
+/* ---- 版面骨架 ---- */
+.page{max-width:1200px;margin:0 auto;padding:0 28px 96px}
+.layout{display:grid;grid-template-columns:156px minmax(0,1fr);gap:36px;align-items:start;padding-top:30px}
+.report-main{min-width:0;max-width:none}
+/* 正文、表格、图表与配图共享同一内容列；宽栏服务数据对照，不让长行继续扩张 */
+.section>p,.section>ul,.section>ol.plain,.section>blockquote,.exec .concl p,.exec__foot{max-width:none}
+
+/* ---- 报头（去掉深色卡，改编辑部封面） ---- */
+.masthead{padding:8px 0 22px;border-bottom:1px solid var(--rule);position:relative}
+.report-opening{position:relative;margin:24px 0 12px;padding:10px 0 20px;border-bottom:1px solid var(--rule)}
+.opening-rule{display:block;width:56px;height:3px;margin:0 0 12px;background:var(--accent)}
+.report-opening .kicker{margin-bottom:10px}
+.report-opening h2{
+  margin:0 0 14px;font-family:var(--heiti);font-size:clamp(28px,2.7vw,36px);
+  font-weight:700;line-height:1.32;color:var(--ink);
+}
+.exec.report-opening-conclusion{margin-top:12px;border-left-width:6px}
+.masthead::before{
+  content:"";position:absolute;left:0;top:0;width:56px;height:3px;background:var(--accent);
+}
+.kicker{
+  margin:0 0 14px;font-family:var(--sans);font-size:11.5px;letter-spacing:.22em;
+  color:var(--accent-b);text-transform:uppercase;font-weight:600;
+}
+.masthead h1{
+  margin:0 0 16px;max-width:32em;font-family:var(--heiti);font-weight:700;
+  font-size:clamp(28px,2.7vw,36px);line-height:1.32;letter-spacing:.01em;color:var(--ink);
+}
+.dek{
+  margin:0 0 18px;font-family:var(--sans);font-size:15.75px;line-height:1.75;color:var(--ink-2);
+}
+.meta{
+  margin:0;display:flex;flex-wrap:wrap;gap:6px 0;align-items:baseline;
+  font-family:var(--sans);font-size:12.5px;color:var(--muted);
+}
+.meta>div{display:inline-flex;gap:6px;align-items:baseline}
+.meta>div+div::before{content:"·";margin:0 12px;color:var(--rule)}
+.meta dt{margin:0;color:var(--muted)}
+.meta dd{margin:0;color:var(--ink-2);font-variant-numeric:tabular-nums}
+
+/* ---- 结论卡：总判断、分点与决策读数三层分工（鱼肚白暖底，内容焦点卡） ---- */
+.exec{
+  margin:18px 0 34px;padding:20px 24px 18px;background:var(--warm-raised);
+  border:1px solid var(--warm-edge);border-left:3px solid var(--accent-b);
+  box-shadow:0 1px 3px rgba(84,58,48,.08);
+}
+.exec__kicker{
+  margin:0 0 7px;font-family:var(--sans);font-size:11px;letter-spacing:.16em;
+  color:var(--accent-b);font-weight:700;text-transform:uppercase;
+}
+.exec__title{
+  margin:0 0 13px;font-family:var(--sans);font-size:17px;line-height:1.4;letter-spacing:.06em;
+  color:var(--accent-b);font-weight:700;text-transform:uppercase;
+}
+.exec__lead{
+  margin:0 0 16px;font-family:var(--kaiti);font-size:18px;line-height:1.62;
+  color:var(--ink);font-weight:600;letter-spacing:-.005em;
+}
+/* 只突出总判断里的关键短语，避免整页都靠绀青或粗体抢注意力 */
+.exec__lead strong{
+  font-weight:650;
+  background:linear-gradient(transparent 64%,var(--accent-b-bg) 64%);
+}
+.exec .concl{margin:14px 0 0;padding:0;list-style:none;counter-reset:concl;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.exec .concl li{counter-increment:concl;position:relative;padding:14px 16px 8px 30px;border-top:1px solid var(--warm-rule-2);border-right:1px solid var(--warm-rule-2)}
+.exec .concl li:first-child{border-top:1px solid var(--warm-rule-2);padding-top:14px}
+.exec .concl li:last-child{border-right:0}
+.exec .concl li::before{
+  content:counter(concl,decimal-leading-zero);position:absolute;left:0;top:16px;
+  font-family:var(--sans);font-size:10.5px;letter-spacing:.06em;color:var(--warm-muted);font-weight:700;
+}
+.exec .concl .h{
+  margin:0 0 5px;font-family:var(--sans);font-size:15px;line-height:1.5;font-weight:650;color:var(--ink);
+}
+.exec .concl p{margin:0;font-family:var(--kaiti);font-size:15.5px;line-height:1.68;color:var(--ink)}
+/* 两条短分点使用两栏；长结论、单条或超过三条时不强塞多栏。 */
+.exec .concl.concl--two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.exec .concl.concl--narrow{display:block}
+.exec .concl.concl--narrow li{border-right:0;padding-left:32px}
+.exec .concl.concl--narrow li:first-child{border-top:0;padding-top:0}
+.exec .concl.concl--narrow .h{font-size:16px}
+.exec__foot{
+  margin:14px 0 0;padding-top:10px;border-top:1px solid var(--warm-rule-2);
+  font-family:var(--sans);font-size:12px;color:var(--warm-muted);
+}
+.kpis{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:0;margin:16px 0 0;border-top:1px solid var(--warm-rule-2);background:#fbf7f0;
+}
+.kpi{padding:13px 16px 8px;border-right:1px solid var(--warm-rule-2)}
+.kpi:last-child{border-right:0}
+.kpi .lab{font-family:var(--sans);font-size:11.5px;letter-spacing:.04em;color:var(--warm-muted);margin-bottom:5px}
+.kpi .val{
+  font-family:var(--sans);font-size:24px;font-weight:600;color:var(--ink);
+  font-variant-numeric:tabular-nums;line-height:1.25;
+}
+.kpi .val.pos{color:var(--up)}
+.kpi .val.neg{color:var(--down)}
+.kpi .val.amber{color:var(--accent-b)}
+.kpi .val em{font-style:normal;font-size:13px;color:var(--muted);margin-left:4px;font-weight:400}
+
+/* ---- 侧边目录（细线、宋体、当前节绀青） ---- */
+.toc{position:sticky;top:26px;font-family:var(--sans);font-size:12.5px}
+.toc__head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--rule)}
+.toc__head h2{margin:0;font-family:var(--sans);font-size:11px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;font-weight:700}
+.toc__collapse{border:0;background:none;color:var(--muted);font-family:var(--sans);font-size:11.5px;cursor:pointer;padding:2px 4px}
+.toc__collapse:hover{color:var(--accent)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{border-bottom:1px dotted var(--rule-2)}
+.toc li a{display:flex;gap:8px;padding:7px 0;color:var(--ink-2);border-bottom:0;line-height:1.5}
+.toc li a:hover{color:var(--accent)}
+.toc li a[aria-current]{color:var(--accent);font-weight:700}
+.toc .no{color:var(--muted);font-variant-numeric:tabular-nums;flex:0 0 auto}
+.toc li a[aria-current] .no{color:var(--accent-b)}
+.toc.is-collapsed ol{display:none}
+.toc-fab{display:none}
+
+/* ---- 正文章节 ---- */
+.section{margin:52px 0 0;scroll-margin-top:24px}
+.section>h2{
+  margin:0 0 20px;padding:0 0 13px;border-bottom:1px solid var(--rule);
+  font-family:var(--heiti);font-size:24px;font-weight:700;line-height:1.42;color:var(--ink);
+}
+.section>h2 .no{
+  display:flex;align-items:center;gap:12px;margin-bottom:9px;
+  font-family:var(--sans);font-size:11px;letter-spacing:.18em;color:var(--accent-b);font-weight:700;
+  font-variant-numeric:tabular-nums;
+}
+/* 编号右侧拉一条细线：既是分隔，也暗示"这篇还有几章" */
+.section>h2 .no::after{content:"";flex:1 1 auto;height:1px;background:var(--accent-b-line)}
+.section h3{margin:28px 0 10px;font-family:var(--heiti);font-size:18px;font-weight:600;line-height:1.6}
+.section h4{margin:22px 0 8px;font-family:var(--sans);font-size:14px;font-weight:700;letter-spacing:.02em}
+/* 正文阅读流用楷体（字号升 16.5px 补偿楷体小字易虚）；表格/KPI/meta/目录等数字密集区保持黑体 */
+.section p{margin:0 0 15px;font-family:var(--kaiti);font-size:16.5px;line-height:1.78;color:var(--ink)}
+.section ul,.section ol.plain{margin:0 0 16px;padding-left:1.4em}
+.section li{margin:0 0 8px;font-family:var(--kaiti);font-size:16.5px;line-height:1.9;color:var(--ink)}
+.section li::marker{color:var(--accent-b)}
+/* ==关键词== 标记带：正文/列表中的关键短语用绛紫浅底标注，与 lead strong 同语言 */
+.section p .mark-key,.section li .mark-key{
+  font-weight:650;color:var(--ink);
+  background:linear-gradient(transparent 64%,var(--accent-b-bg) 64%);
+  -webkit-box-decoration-break:clone;box-decoration-break:clone;
+}
+
+/* 引用块 → 编辑部提示框（暖米底 + 檀赭竖线，与结论卡鱼肚白同族） */
+.section blockquote{
+  margin:20px 0;padding:16px 22px;background:var(--warm-quote);
+  border-left:3px solid var(--accent-b);
+}
+.section blockquote p{margin:0;font-family:var(--kaiti);font-size:15.5px;color:var(--ink);line-height:1.9}
+.section hr{border:0;border-top:1px solid var(--rule);margin:34px 0}
+
+/* ---- 数据表（无圆角、细线、表头小字） ---- */
+.data-table{
+  margin:28px 0 30px;background:var(--surface);border:1px solid var(--rule);
+}
+.data-table__head{
+  display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap;
+  padding:13px 16px 10px;border-bottom:1px solid var(--rule-2);background:var(--surface-raised);
+}
+.data-table__head h3{
+  margin:0 0 3px;font-family:var(--heiti);font-size:12.5px;letter-spacing:.03em;
+  color:var(--accent-b);font-weight:600;
+}
+.table-scroll{overflow-x:auto}
+.data-table table{
+  width:100%;border-collapse:collapse;font-family:var(--sans);font-size:13.25px;
+}
+.data-table thead th{
+  position:relative;text-align:left;font-weight:600;font-size:12.5px;letter-spacing:.02em;color:var(--ink-2);
+  padding:8px 9px;border-bottom:1px solid var(--rule);white-space:nowrap;background:var(--surface-2);
+}
+.data-table thead th.is-numeric{text-align:right}
+.data-table tbody td,.data-table tbody th{
+  padding:8px 9px;border-bottom:1px solid var(--rule-2);color:var(--ink);vertical-align:top;
+  line-height:1.6;
+}
+.data-table tbody th{text-align:left;font-weight:400;color:var(--ink);white-space:nowrap}
+.data-table tbody tr:last-child td,.data-table tbody tr:last-child th{border-bottom:0}
+.data-table tbody tr:hover td,.data-table tbody tr:hover th{background:var(--hover)}
+.data-table td.is-numeric,.data-table th.is-numeric{
+  text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;
+}
+/* 涨跌语气：颜色只作辅助，符号与正负号承担方向识别，灰度/色弱场景仍可读 */
+.data-table td.is-numeric.pos{color:var(--up)}
+.data-table td.is-numeric.neg{color:var(--down)}
+.data-table td.is-numeric.pos::before{content:"▲ ";font-size:.78em}
+.data-table td.is-numeric.neg::before{content:"▼ ";font-size:.78em}
+.data-table td .ref-node,.data-table th .ref-node{margin-left:2px}
+.data-table td:last-child:has(.ref-node){white-space:nowrap}
+.data-table td.nowrap{white-space:nowrap}
+/* 表内上标脚注：单元格 sup 角标（檀赭）+ 表底有序脚注列表（暖灰小字） */
+.data-table sup.tn,.viz sup.tn{
+  font-size:.68em;color:var(--accent-b);font-weight:600;margin-left:1px;
+}
+ol.tnotes{
+  margin:0;padding:8px 16px 9px 2.6em;border-top:1px solid var(--warm-rule);
+  font-size:12px;line-height:1.7;color:var(--warm-muted);font-family:var(--sans);
+}
+ol.tnotes li{margin:0}
+ol.tnotes li::marker{color:#9a8f83}
+
+/* ---- 图表卡（暖族内容焦点卡：图表头 > 绘图区 > 卡体 三档暖底） ---- */
+.viz{margin:30px 0;background:var(--warm-card);border:1px solid #d6cfc2}
+.viz__head{
+  display:flex;justify-content:space-between;align-items:flex-start;gap:14px;
+  padding:16px 18px 10px;border-bottom:1px solid var(--warm-rule);background:var(--warm-head);
+}
+.viz__head h3{margin:0 0 4px;font-family:var(--heiti);font-size:17px;font-weight:600;line-height:1.45}
+.viz__meta{margin:0;font-family:var(--sans);font-size:11.5px;color:var(--muted)}
+.viz__tools{display:flex;align-items:center;gap:12px;flex:0 0 auto}
+.seg{display:inline-flex;gap:0;border-bottom:1px solid var(--rule)}
+.seg [data-view]{
+  font-family:var(--sans);font-size:11.5px;letter-spacing:.04em;color:var(--muted);
+  background:none;border:0;border-bottom:2px solid transparent;padding:6px 12px;cursor:pointer;min-height:34px;
+}
+.seg [data-view][aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent);font-weight:700}
+/* 绘图区：鱼肚白独立底 + 暖描边，与结论卡同族 */
+.chart-view{height:340px;padding:10px 12px 4px;background:var(--warm-raised);border:1px solid var(--warm-edge);border-radius:2px;margin:10px 14px 8px}
+.table-view{padding:2px 0 6px;background:transparent}
+.table-view[hidden]{display:none}
+/* 图表"数据表"页签：数值列右对齐 + 等宽数字 + 暖族边线表头（与图表头同底，页签切换视觉连续） */
+.viz .table-view table{
+  width:100%;border-collapse:collapse;font-family:var(--sans);font-size:13.5px;line-height:1.55;
+}
+.viz .table-view th,.viz .table-view td{
+  padding:7px 14px;border-bottom:1px solid var(--warm-rule);text-align:left;
+}
+.viz .table-view thead th{
+  background:var(--warm-head);color:var(--ink-2);font-weight:600;border-bottom:1px solid #d6ccbb;
+}
+.viz .table-view tbody th[scope="row"]{font-weight:600;color:var(--ink-2);white-space:nowrap}
+.viz .table-view th.is-numeric,.viz .table-view td.is-numeric{
+  text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;
+}
+/* 涨跌语气与正文数据表同源：颜色辅助 + 符号承担方向 */
+.viz .table-view td.is-numeric.pos{color:var(--up)}
+.viz .table-view td.is-numeric.neg{color:var(--down)}
+.viz .table-view td.is-numeric.pos::before{content:"▲ ";font-size:.78em}
+.viz .table-view td.is-numeric.neg::before{content:"▼ ";font-size:.78em}
+.viz .table-view tbody tr:last-child th,.viz .table-view tbody tr:last-child td{border-bottom:none}
+.viz__note{
+  margin:0;padding:10px 18px 14px;border-top:1px solid var(--warm-rule);
+  font-family:var(--kaiti);font-size:14.5px;color:var(--warm-muted);line-height:1.85;
+}
+.chart-fallback{
+  margin:0;padding:10px 18px;font-family:var(--sans);font-size:12px;color:var(--accent-b);
+  background:var(--accent-b-bg);border-top:1px solid var(--accent-b-line);
+}
+.viz [data-viz-fallback][hidden]{display:none}
+.mermaid-wrap{margin:22px 0;padding:18px;background:var(--surface);border:1px solid var(--rule);overflow-x:auto}
+.mermaid{margin:0;display:flex;justify-content:center}
+
+/* ---- 配图（细框 + 图题 + 来源行） ---- */
+.rpt-figure{
+  margin:28px 0;background:var(--surface);border:1px solid var(--rule);padding:16px 18px 14px;
+}
+.figure-zoom{display:block;width:100%;padding:0;border:0;background:#fff;cursor:zoom-in}
+.figure-zoom img{display:block;width:100%;height:auto;max-height:520px;object-fit:contain;background:#fff}
+.figure-zoom:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.zoom-modal{
+  position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;
+  padding:24px;background:rgba(18,23,28,.88);
+}
+.zoom-modal img{max-width:92vw;max-height:86vh;width:auto;height:auto;background:#fff}
+.zoom-modal__close{
+  position:fixed;right:20px;top:18px;font-family:var(--sans);font-size:12.5px;color:#fff;
+  background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);padding:6px 12px;cursor:pointer;
+}
+.zoom-modal__close:hover{background:rgba(255,255,255,.24)}
+.rpt-figure figcaption{margin-top:10px;padding-top:8px;border-top:1px solid var(--rule-2)}
+.rpt-figure .figure-title{margin:0 0 3px;font-family:var(--heiti);font-size:13.5px;font-weight:600;color:var(--ink)}
+.rpt-figure .figure-src{margin:0;font-family:var(--sans);font-size:12px;color:var(--muted);line-height:1.7}
+.rpt-figure .figure-warn{margin:6px 0 0;font-family:var(--sans);font-size:11.5px;color:var(--accent-b)}
+.figure-missing{
+  display:flex;flex-direction:column;gap:6px;padding:26px 18px;border:1px dashed var(--rule);
+  background:var(--surface-2);color:var(--muted);font-family:var(--sans);font-size:12.5px;line-height:1.7;
+}
+.figure-missing strong{color:var(--accent-b);font-size:13px}
+.figure-missing code{font-family:var(--mono);font-size:11px;word-break:break-all;color:var(--muted)}
+
+/* ---- 引用角标与弹窗 ---- */
+/* 独立 HTML 不展示来源：占位符由 Desktop Canvas 注入样式后显示为来源角标。 */
+.report-source-citation{display:none}
+/* 引用角标：学术式上标编号 [1] / [1,2]；点击弹出来源明细。
+   不用图标（参考件用的是链条图标，这里刻意改成"文献角标"形态） */
+.ref-mark{font-size:.72em;line-height:1;vertical-align:super;white-space:nowrap}
+.ref-node{
+  cursor:pointer;color:var(--faint);font-family:var(--sans);font-size:1em;line-height:1;
+  font-variant-numeric:tabular-nums;letter-spacing:.01em;padding:0 1px;
+}
+.ref-node::before{content:"[";opacity:.65}
+.ref-node::after{content:"]";opacity:.65}
+.ref-node:hover,.ref-node:focus-visible{color:var(--accent)}
+.ref-modal{position:fixed;inset:0;background:var(--overlay);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.ref-modal.open{display:flex}
+.ref-modal__box{
+  background:var(--surface);border:1px solid var(--rule);max-width:560px;width:100%;
+  max-height:72vh;overflow:auto;padding:24px 26px;
+}
+.ref-modal__head{display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding-bottom:10px;margin-bottom:12px;border-bottom:1px solid var(--rule)}
+.ref-modal__head h3{margin:0;font-family:var(--sans);font-size:12px;letter-spacing:.14em;
+  color:var(--accent);text-transform:uppercase}
+.ref-modal__close{all:unset;cursor:pointer;font-size:16px;color:var(--muted);padding:2px 6px}
+.ref-modal__close:hover{color:var(--accent)}
+.ref-item{padding:12px 0;border-bottom:1px dotted var(--rule-2);font-family:var(--sans);font-size:12.5px}
+.ref-item:last-child{border-bottom:0}
+.ref-item .rt{font-weight:700;line-height:1.65;margin-bottom:4px;color:var(--ink)}
+.ref-item .rm{font-size:11.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:3px 14px}
+.ref-item .rid{font-size:10.5px;color:var(--faint);font-family:var(--mono);margin-top:6px;word-break:break-all}
+.ref-item a.ru{font-size:11.5px;word-break:break-all}
+
+/* ---- 页脚（版权页脚注） ---- */
+.footer{
+  margin-top:52px;padding-top:16px;border-top:1px solid var(--rule);
+  font-family:var(--sans);font-size:12px;line-height:1.85;color:var(--muted);
+}
+
+/* ---- 移动端的折叠目录 ---- */
+.toc-overlay{position:fixed;inset:0;background:var(--overlay);z-index:150;display:none}
+.toc-overlay.open{display:block}
+.toc-sheet{
+  position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--rule);
+  padding:20px 22px 28px;max-height:70vh;overflow:auto;
+}
+.toc-sheet h3{margin:0 0 10px;font-family:var(--sans);font-size:11px;letter-spacing:.16em;color:var(--accent);text-transform:uppercase}
+.toc-sheet ol{margin:0;padding:0;list-style:none;font-family:var(--sans);font-size:13px}
+.toc-sheet li{border-bottom:1px dotted var(--rule-2)}
+.toc-sheet a{display:block;padding:9px 0;color:var(--ink-2);border-bottom:0}
+
+/* ---- 无 JS / 打印等降级 ---- */
+html:not(.js) .table-view[hidden]{display:block !important}
+html:not(.js) .seg{display:none !important}
+
+@media (max-width:1080px){
+  .layout{grid-template-columns:minmax(0,1fr)}
+  .report-main{max-width:none}
+  .toc{display:none}
+  /* Without JavaScript the floating menu cannot open, so keep the inline TOC. */
+  html:not(.js) .toc{display:block}
+  html:not(.js) .toc-fab{display:none}
+  .toc-fab{
+    display:flex;align-items:center;gap:6px;position:fixed;right:18px;bottom:22px;z-index:140;
+    font-family:var(--sans);font-size:12px;letter-spacing:.06em;color:var(--surface);
+    background:var(--ink);border:0;padding:9px 14px;cursor:pointer;
+  }
+  .masthead{padding-top:36px}
+  .exec{padding:22px}
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .kpi{padding-right:14px}
+  .chart-view{height:300px}
+}
+@media (max-width:800px){
+  /* 中窄屏不保留过窄三栏/两栏，优先保证中文分点的行宽与可读性。 */
+  .exec .concl{display:block}
+  .exec .concl li{border-right:0}
+  .exec .concl li:first-child{border-top:0;padding-top:0}
+}
+@media (max-width:640px){
+  body{font-size:16px}
+  .page{padding:0 16px 72px}
+  .section>h2{font-size:21px}
+  .exec{padding:18px}
+  .exec__lead{font-size:17px}
+  .exec .concl{display:block}
+  .exec .concl li{border-right:0;padding-left:30px}
+  .exec .concl li:first-child{border-top:0;padding-top:0}
+  .exec .concl .h{font-size:16px}
+  .kpis{grid-template-columns:1fr}
+  .kpi{border-right:0;border-bottom:1px solid var(--rule-2);padding:12px 14px}
+  .seg [data-view]{min-height:40px}
+  .data-table__head{flex-direction:column;align-items:flex-start}
+  .viz__head{flex-direction:column}
+}
+
+/* ---- 打印 / 导出 PDF：A4，隐藏交互控件，避免跨页断裂 ---- */
+@media print{
+  :root{--paper:#fff;--surface:#fff;--surface-2:#fff;
+        --warm-raised:#fff;--warm-card:#fff;--warm-head:#fff;--warm-quote:#fff}
+  body{background:#fff;font-size:10.5pt;line-height:1.75}
+  /* 暖底内容焦点卡打印覆白（KPI 条为字面量底色，需单独覆写） */
+  .kpis{background:#fff}
+  .chart-view{border-color:#ccc}
+  .page{max-width:none;padding:0}
+  .read-progress,.toc,.toc-fab,.toc-overlay,.skip-link,.viz__tools,.ref-modal{display:none !important}
+  .layout{display:block}
+  .report-main{max-width:none}
+  .masthead{padding-top:0}
+  .masthead::before{display:none}
+  /* 长文块允许跨页（否则大卡片会被整块推到下一页，留半页空白）；
+     只对小卡片/短块禁止拆分，避免表格与图表被切断 */
+  .exec{break-inside:auto;page-break-inside:auto;border-color:#ccc}
+  .exec .concl{display:block}
+  .exec .concl li{border-right:0}
+  .exec .concl li,.kpis{break-inside:avoid;page-break-inside:avoid}
+  .data-table,.viz,.rpt-figure,.mermaid-wrap{break-inside:avoid;page-break-inside:avoid;border-color:#ccc}
+  .masthead{break-after:avoid;page-break-after:avoid}
+  .section{break-before:auto}
+  /* 章节标题（编号眉标 + 标题）必须整体留在同一页 */
+  .section>h2{break-inside:avoid;page-break-inside:avoid;break-after:avoid;page-break-after:avoid}
+  .section p,.section li{orphans:3;widows:3}
+  /* 屏幕上的数据表视图是交互兜底；打印时图已绘制，不重复铺表格 */
+  .table-view{display:none !important}
+  /* A failed chart or disabled JS leaves the data table as the only readable view. */
+  .chart-view[hidden] + .table-view,html:not(.js) .table-view{display:block !important}
+  /* 打印时缩图：原尺寸会把整页顶到下一页、留大片空白 */
+  .rpt-figure img{max-height:78mm;width:auto;max-width:100%;margin:0 auto}
+  /* 图表是固定像素画布：打印时按比例缩放，强制改容器高度会把图压扁、标签重叠 */
+  .chart-view{height:auto}
+  .zoom-modal{display:none !important}
+  .figure-zoom{cursor:default}
+  .chart-view canvas{max-width:100% !important;height:auto !important}
+  .data-table table{font-size:9pt}
+  .viz__head,.data-table__head{padding-top:8px;padding-bottom:6px}
+  .chart-fallback{display:block}
+  a{color:inherit;border-bottom:0}
+  @page{size:A4;margin:16mm 14mm}
+}
+@media (prefers-reduced-motion: reduce){
+  *{transition:none !important;animation:none !important;scroll-behavior:auto !important}
+}
+
+/* ---- 入场动效（渐进增强）：仅当 JS 已给 <html> 加 js-anim 时才生效；
+   未加载 JS、禁用 JS、或 prefers-reduced-motion 时内容保持默认可见，不依赖动效显示内容 ---- */
+.js-anim .reveal{opacity:0;transform:translateY(4px);transition:opacity .24s ease-out,transform .24s ease-out}
+.js-anim .reveal.in{opacity:1;transform:translateY(0)}
+@media (prefers-reduced-motion: reduce){
+  .js-anim .reveal{opacity:1;transform:none;transition:none}
+}
+@media print{
+  .reveal{opacity:1 !important;transform:none !important}
+}
+
+/* ---- 引用角标联动高亮：悬停/聚焦任一处角标时，相同来源的其它角标一起提亮 ---- */
+.ref-node.ref-active{color:var(--accent);text-decoration:underline}
+
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">跳到正文</a>
+<div class="read-progress" id="readProgress" aria-hidden="true"></div>
+<div class="page">
+<div class="layout">
+<nav class="toc" id="toc" aria-label="目录"><div class="toc__head"><h2>目录</h2><button type="button" class="toc__collapse" id="tocCollapse" aria-expanded="true">收起</button></div><ol><li><a href="#s1" data-label="核心判断：这不是社区概念介绍，而是卖方使用指南"><span class="no">01</span><span class="txt">核心判断：这不是社区概念介绍，而是卖方使用指南</span></a></li><li><a href="#s2" data-label="一、策划定位：让卖方看完就知道“我怎么用”"><span class="no">02</span><span class="txt">一、策划定位：让卖方看完就知道“我怎么用”</span></a></li><li><a href="#s3" data-label="二、核心卖点：卖方得到的不是单一上架位置，而是一条服务链"><span class="no">03</span><span class="txt">二、核心卖点：卖方得到的不是单一上架位置，而是一条服务链</span></a></li><li><a href="#s4" data-label="三、真实界面怎么用：一张证明开放，一张证明 Key"><span class="no">04</span><span class="txt">三、真实界面怎么用：一张证明开放，一张证明 Key</span></a></li><li><a href="#s5" data-label="四、卖方使用路径：从机构邀请开始"><span class="no">05</span><span class="txt">四、卖方使用路径：从机构邀请开始</span></a></li><li><a href="#s6" data-label="五、主文与图卡结构：按真实操作顺序讲"><span class="no">06</span><span class="txt">五、主文与图卡结构：按真实操作顺序讲</span></a></li><li><a href="#s7" data-label="六、可直接改写的传播文案"><span class="no">07</span><span class="txt">六、可直接改写的传播文案</span></a></li><li><a href="#s8" data-label="七、内容制作与发布节奏"><span class="no">08</span><span class="txt">七、内容制作与发布节奏</span></a></li><li><a href="#s9" data-label="八、复盘指标：分别看开放与 Key，不看单一热度"><span class="no">09</span><span class="txt">八、复盘指标：分别看开放与 Key，不看单一热度</span></a></li><li><a href="#s10" data-label="九、发布前只需确认操作细节，不再质疑功能主线"><span class="no">10</span><span class="txt">九、发布前只需确认操作细节，不再质疑功能主线</span></a></li></ol></nav>
+<div class="report-main" id="main">
+<header class="masthead" aria-label="报告开篇"><p class="kicker">使用策划 · AlphaEngine Skill 社区</p><h1>卖方怎样把方法放进买方工作流？</h1><p class="dek">把卖方操作拆成机构邀请、署名上传、开放与 Key 选择、买方调用和定时反馈，并用两张真实界面分别说明两条使用路径。</p><dl class="meta"><div><dt>修订日期</dt><dd>2026-11-20</dd></div><div><dt>核心对象</dt><dd>卖方分析师及券商研究机构</dd></div><div><dt>第一动作</dt><dd>机构邀请与身份点亮</dd></div></dl></header><section class="exec" aria-label="开篇核心结论"><h2 class="exec__title">核心结论</h2><p class="exec__lead">本期不再泛讲社区概念，而是教卖方把方法上架、让买方调用、收到使用反馈，并将反馈用于服务评价与白名单经营。</p><ol class="concl"><li><p class="h">判断</p><p>先点亮机构身份，再选择开放或 Key，最后承接调用反馈。</p></li><li><p class="h">证据</p><p>真实界面分别展示直接添加与 Key 授权连接两种路径。</p></li><li><p class="h">边界</p><p>不比较现有热度，不承诺曝光增幅、固定派点或获客结果。</p></li></ol><div class="kpis"><div class="kpi"><div class="lab">分发路径</div><div class="val">2 条：开放 / Key</div></div><div class="kpi"><div class="lab">卖方流程</div><div class="val">5 个步骤</div></div><div class="kpi"><div class="lab">图卡结构</div><div class="val">7 页</div></div></div><p class="exec__foot">本报告由 AlphaClaw 基于公开披露与研究资料整理，仅供研究参考，不构成投资建议。</p></section>
+
+
+<article>
+
+<section class="section" id="s1"><h2><span class="no">01 / 10</span>核心判断：这不是社区概念介绍，而是卖方使用指南</h2><p><strong>本期贴文的主线调整为：向卖方分析师展示如何使用 AlphaEngine Skill 社区，把研究方法转化为可持续的买方服务。</strong></p><p>内容不再从“为什么 Skill 化值得试点”展开，而是直接回答卖方最关心的四个操作问题：</p><ol class="plain">
+<li>如何通过机构服务邀请点亮机构身份，并上传署名 Skill；</li>
+<li>上传时如何在不设 Key 与设置 Key 之间选择；</li>
+<li>买方调用后，平台如何把使用情况定时汇总并送达分析师；</li>
+<li>这些调用反馈如何作为买方对卖方服务打分、派点的依据，并通过 Key 白名单承接获客转化。</li>
+</ol>
+<p><strong>建议保留主题「让分析师的方法，进入买方工作流」，副标题改为「机构服务邀请：机构署名、开放曝光、Key 白名单与买方调用反馈」。</strong></p><p>叙事顺序必须是：<span class="mark-key">机构邀请与署名 → 上传 Skill → 选择是否设置 Key → 买方调用 → 定时汇总送达 → 服务评价与获客转化。</span></p><p>公开资料可作为社区基础能力的补充：官方公开课 2026-09-14 介绍了 Skill 一键安装、直接调用和通过“/”呼出。<span class="report-source-citation" data-source-id="rep_190000041352368"></span>官方 2026-09-21 介绍了与券商联合研发专业 Skill，将分析师实务经验融入 AI 工作流。<span class="report-source-citation" data-source-id="rep_190000041352367"></span>本版关于机构身份、Key 双轨和调用汇总的具体操作，以用户确认及本轮上传的真实产品界面为依据。</p><hr></section><section class="section" id="s2"><h2><span class="no">02 / 10</span>一、策划定位：让卖方看完就知道“我怎么用”</h2><section class="data-table" data-table-root aria-label="项目与调整后内容"><div class="data-table__head"><div><h3>表 01｜项目与调整后内容</h3></div></div><div class="table-scroll" tabindex="0" role="region" aria-label="数据表，可横向滚动"><table><thead><tr><th scope="col" class="">项目</th><th scope="col" class="">调整后内容</th></tr></thead><tbody><tr><th scope="row">核心对象</th><td>券商首席及骨干分析师，其次是研究所机构服务、数字化与合规团队</td></tr><tr><th scope="row">内容任务</th><td>教卖方使用 Skill 社区，不再泛讲社区趋势或试点必要性</td></tr><tr><th scope="row">第一动作</th><td>接受机构服务邀请，点亮机构身份，上传带真实姓名与机构标签的 Skill</td></tr><tr><th scope="row">核心选择</th><td>上传时不设 Key，获得社区曝光；设置 Key，承接白名单服务与获客转化</td></tr><tr><th scope="row">核心反馈</th><td>平台定时汇总并送达买方对该 Skill 的调用情况</td></tr><tr><th scope="row">核心价值</th><td>调用情况作为买方对卖方研究服务打分、派点的依据，并帮助分析师持续改进服务</td></tr><tr><th scope="row">行动入口</th><td>申请机构服务邀请，提交一个可复用的方法并选择开放或 Key 路径</td></tr></tbody></table></div></section><p><span class="mark-key">整套图文只讲一件事：卖方如何通过 Skill 社区，把方法上架、让买方使用、收到使用反馈，并把反馈用于研究服务。</span></p><p>不扩展为 AlphaEngine 全产品介绍，不把篇幅分给与这条路径无关的功能，也不编造曝光增幅、派点换算、获客数量或收入空间。</p><hr></section><section class="section" id="s3"><h2><span class="no">03 / 10</span>二、核心卖点：卖方得到的不是单一上架位置，而是一条服务链</h2><h3>1. 机构身份：方法有明确署名与归属</h3><p>卖方通过机构服务邀请点亮机构身份后，上传的 Skill 可以带真实姓名与机构标签。两张真实界面的卡片均显示了分析师、机构标签和更新日期，说明卖方不是匿名内容供给者，而是以明确的专业身份向买方提供方法。</p><p>**对卖方的意义：**研究贡献可以被识别，机构专业形象可以随方法一起进入买方工作流。</p><h3>2. 不设 Key：降低使用门槛，由平台增加社区曝光</h3><p>机构上传 Skill 时不设置 Key，买方可以直接添加和使用，平台会在 Skill 社区里增加该 Skill 的曝光量。</p><p>本轮上传的无 Key 界面没有授权输入步骤，页面底部可直接“添加到我的 Skill”，并展示 Skill 使用案例。<strong>它适合承担“开放方法如何被买方看到并加入工作流”的视觉证据。</strong></p><p>**对卖方的意义：**适合通用研究框架、公开数据核验、方法样例和希望扩大触达的成熟方法。</p><h3>3. 设置 Key：用权限承接白名单服务与获客转化</h3><p>机构设置 Key 后，用户如果想调用该 Skill，需要联系券商申请 Key。获得权限后，再完成授权连接并使用。</p><p>本轮上传的 Key 界面显示了 <code>Authorization</code>、<code>Bearer</code>、Key 输入框、“连接”按钮和“如何获取 Key”区域。<strong>它适合承担“Key Skill 如何形成权限门槛”的视觉证据。</strong></p><p>**对卖方的意义：**通过 Key 和白名单确认服务对象，把社区中的方法需求转化为券商可以持续承接的客户关系。</p><h3>4. 定时调用反馈：让买方使用成为卖方服务依据</h3><p>平台定时汇总买方对某一 Skill 的调用情况并送达分析师，使卖方能够了解方法是否被使用、如何被使用，并据此改进方法与机构服务。</p><p>这些调用情况可以作为买方对卖方研究服务进行打分、派点的依据。传播时应直接说明这一产品价值，但不把调用量进一步换算成确定的派点比例或收入结果。</p><h3>5. 开放与 Key 双轨：曝光和获客不是二选一</h3><p>开放 Skill 与 Key Skill 对应不同的服务目标：前者降低体验门槛、扩大方法触达，后者设置权限、承接白名单服务。卖方可以根据方法内容、数据授权和服务深度进行选择。</p><p>**建议重点讲清“同一机构可以同时经营两类 Skill”，而不是要求所有方法只走一种分发方式。**若同一方法能否同时设置开放版与 Key 版尚未确认，不要在图文中承诺这一具体操作。</p><hr></section><section class="section" id="s4"><h2><span class="no">04 / 10</span>三、真实界面怎么用：一张证明开放，一张证明 Key</h2><section class="data-table" data-table-root aria-label="素材与画面应保留什么"><div class="data-table__head"><div><h3>表 02｜素材与画面应保留什么</h3></div></div><div class="table-scroll" tabindex="0" role="region" aria-label="数据表，可横向滚动"><table><thead><tr><th scope="col" class="">素材</th><th scope="col" class="">画面应保留什么</th><th scope="col" class="">在图文中的任务</th><th scope="col" class="">脱敏要求</th></tr></thead><tbody><tr><th scope="row">未设置 Key 的机构 Skill 详情页</th><td>机构署名区域、Skill 使用案例、底部“添加到我的 Skill”</td><td>证明买方无需先完成 Key 授权，即可添加开放 Skill；配合“平台增加社区曝光”的说明</td><td>分析师姓名、机构名、具体 Skill 名称、基金或股票代码及观点结论按发布规范处理</td></tr><tr><th scope="row">设置 Key 的机构 Skill 详情页</th><td><code>Authorization</code>、Key 输入框、“连接”、“如何获取 Key”</td><td>证明该 Skill 存在授权步骤；配合“用户联系券商申请 Key”的说明</td><td>隐去真实 Key、机构名、人名和任何可识别客户的信息</td></tr><tr><th scope="row">两张社区卡片缩略图</th><td>分析师与机构标签所在位置、更新日期</td><td>证明上传 Skill 已点亮机构身份</td><td>标签位置和字段结构保留，具体姓名与机构值打码</td></tr></tbody></table></div></section><p>**两张详情图不能只作为装饰。**每张图旁边只放一个解释：</p><ul>
+<li>无 Key 图：<strong>Open Skill｜Add it directly. Platform exposure helps the method reach more users.</strong></li>
+<li>Key 图：<strong>Key Skill｜Users contact the broker for access, then connect with their Key.</strong></li>
+</ul>
+<p>现有界面的 <code>100+</code> 与 <code>3.1k</code> 热度不代表本次功能实验，也不能单独证明“无 Key 一定比 Key 曝光更高”。对外图卡默认遮住具体数值，正文不做两种路径的效果对比。</p><hr></section><section class="section" id="s5"><h2><span class="no">05 / 10</span>四、卖方使用路径：从机构邀请开始</h2><h3>第一步：接受机构服务邀请，点亮机构身份</h3><p>机构服务团队与研究所完成服务对接、机构授权和分析师身份确认。分析师上传 Skill 时，以真实姓名和机构标签呈现方法贡献。</p><p>页面需要让卖方看到：<span class="mark-key">我是谁、我代表哪家机构、我上传的方法如何被署名。</span></p><h3>第二步：上传一个可复用的方法</h3><p>候选 Skill 至少说明：</p><ul>
+<li>解决什么买方任务；</li>
+<li>需要哪些输入和数据；</li>
+<li>按什么步骤分析；</li>
+<li>以什么结构输出；</li>
+<li>哪些口径必须检查；</li>
+<li>哪些情形不适用；</li>
+<li>谁负责后续更新。</li>
+</ul>
+<p>首批仍优先高频、边界清楚、可公开演示的方法，不用客户底稿，不输出评级、目标价或买卖建议。</p><h3>第三步：上传时选择是否设置 Key</h3><section class="data-table" data-table-root aria-label="第三步：上传时选择是否设置 Key"><div class="data-table__head"><div><h3>表 03｜第三步：上传时选择是否设置 Key</h3></div></div><div class="table-scroll" tabindex="0" role="region" aria-label="数据表，可横向滚动"><table><thead><tr><th scope="col" class="">选择</th><th scope="col" class="">平台与买方路径</th><th scope="col" class="">卖方用来实现什么</th><th scope="col" class="">图文应回答的问题</th></tr></thead><tbody><tr><th scope="row"><strong>不设置 Key</strong></th><td>平台增加该 Skill 在社区的曝光；买方可直接添加并调用</td><td>扩大方法触达，让买方更容易开始使用</td><td>“如果我希望更多买方先看到并试用，应该怎么做？”</td></tr><tr><th scope="row"><strong>设置 Key</strong></th><td>用户联系券商申请 Key，获得权限后连接并调用</td><td>通过白名单确认服务对象，承接获客转化</td><td>“如果我希望把方法用于特定客户服务，应该怎么做？”</td></tr></tbody></table></div></section><p>**选择 Key 的依据是服务方式，不是方法好坏。**开放路径看触达与使用，Key 路径看申请、开通、激活和实际调用，不把两个路径的总调用量直接放在一起评价。</p><h3>第四步：买方调用，平台定时汇总并送达</h3><p>买方添加并调用 Skill 后，平台定时汇总该 Skill 的买方调用情况并送达分析师。分析师据此了解方法使用、开展服务复盘并持续迭代。</p><p>卖方摘要建议包含统计周期、Skill 版本、开放/Key 状态、有效调用、跨日复用、运行异常和版本更新。具体周期和字段以产品实际汇总为准，无法取得的字段标为 N/A，不以 0 替代。</p><h3>第五步：用于服务评价与白名单经营</h3><p>调用情况作为买方对卖方研究服务打分、派点的依据；Key 申请和白名单开通则帮助券商确认并承接服务对象。</p><p>传播收束到两条结果即可：</p><ul>
+<li>**买方为什么愿意继续用：**方法能进入真实任务，并能被反复调用。</li>
+<li>**卖方为什么愿意持续上传：**方法有署名、使用有反馈、开放有曝光、Key 能承接白名单服务。</li>
+</ul>
+<hr></section><section class="section" id="s6"><h2><span class="no">06 / 10</span>五、主文与图卡结构：按真实操作顺序讲</h2><p><strong>主标题建议：</strong>《机构服务邀请：让你的研究方法，进入买方工作流》</p><p>**副标题：**点亮机构身份，上传署名 Skill；开放增加曝光，Key 承接白名单服务；买方调用情况定时汇总送达。</p><section class="data-table" data-table-root aria-label="副标题：点亮机构身份，上传署名 Skill；开放增加曝光"><div class="data-table__head"><div><h3>表 04｜副标题：点亮机构身份，上传署名 Skill；开放增加曝光</h3></div></div><div class="table-scroll" tabindex="0" role="region" aria-label="数据表，可横向滚动"><table><thead><tr><th scope="col" class="">页码</th><th scope="col" class="">页面任务</th><th scope="col" class="">核心文案方向</th><th scope="col" class="">主视觉</th></tr></thead><tbody><tr><th scope="row">P1</th><td>点明对象与结果</td><td>卖方不只是发布报告，也可以把方法放进买方工作流</td><td>机构署名 Skill 卡片示意</td></tr><tr><th scope="row">P2</th><td>第一步：机构邀请与上传</td><td>接受机构服务邀请，点亮机构身份，上传带真实姓名与机构标签的 Skill</td><td>两张卡片署名区域，具体值脱敏</td></tr><tr><th scope="row">P3</th><td>路径 A：不设置 Key</td><td>平台增加社区曝光，买方直接添加并调用</td><td>无 Key 详情页与“添加到我的 Skill”</td></tr><tr><th scope="row">P4</th><td>路径 B：设置 Key</td><td>用户联系券商申请 Key，权限确认后连接使用，承接白名单获客转化</td><td>Key 输入与连接区域</td></tr><tr><th scope="row">P5</th><td>买方真实调用</td><td>方法从社区页面进入买方任务，形成使用记录</td><td>开放 Skill 使用案例，隐去具体标的与观点</td></tr><tr><th scope="row">P6</th><td>定时反馈与服务价值</td><td>平台定时汇总并送达调用情况，作为买方打分、派点的依据</td><td>“买方调用 → 定时汇总 → 送达分析师 → 服务评价”流程图</td></tr><tr><th scope="row">P7</th><td>行动邀请</td><td>申请机构服务邀请，提交一个可复用方法，选择开放或 Key 路径</td><td>单一 CTA</td></tr></tbody></table></div></section><p>**这套页序把“机构身份”放在开放/Key 之前，把“调用反馈与派点依据”放在两条路径之后。**不能再把机构身份、Key 和反馈画成三个互不相关的功能点。</p><hr></section><section class="section" id="s7"><h2><span class="no">07 / 10</span>六、可直接改写的传播文案</h2><blockquote><p>一份报告会被读完，一套好的研究方法还可以继续被买方调用。</p><p></p><p>AlphaEngine Skill 社区面向券商分析师提供机构服务邀请：点亮机构身份后，你可以上传带真实姓名与机构标签的 Skill，让方法以明确署名进入买方工作流。</p><p></p><p>上传时，你可以根据服务方式选择是否设置 Key。不设 Key，平台会增加该 Skill 在社区的曝光，买方可以直接添加和调用；设置 Key，用户需要联系券商申请权限，机构可以通过白名单承接服务与获客转化。</p><p></p><p>买方调用之后，平台会定时汇总并送达该 Skill 的使用情况，帮助分析师了解方法使用、改进研究服务，并作为买方对卖方服务打分、派点的依据。</p><p></p><p><strong>让方法有署名，让使用有反馈，让研究服务在报告之外继续发生。欢迎申请 Skill 社区机构服务邀请。</strong></p></blockquote><p>英文图卡应按同一顺序压缩，不把“打分派点”简化成 <code>earn commission</code>，建议使用：</p><p><code>Usage summaries can support buy-side evaluation of sell-side research services.</code></p><p>如需直接对应“派点”，可使用 <code>commission allocation evaluation</code>，但不得写成 <code>guaranteed commission</code>、<code>more clients</code> 或 <code>higher income</code>。</p><hr></section><section class="section" id="s8"><h2><span class="no">08 / 10</span>七、内容制作与发布节奏</h2><section class="data-table" data-table-root aria-label="时间与动作"><div class="data-table__head"><div><h3>表 05｜时间与动作</h3></div></div><div class="table-scroll" tabindex="0" role="region" aria-label="数据表，可横向滚动"><table><thead><tr><th scope="col" class="">时间</th><th scope="col" class="">动作</th><th scope="col" class="">调整后的重点</th></tr></thead><tbody><tr><th scope="row">11-20</th><td>截图与口径预审</td><td>确认两张详情图的授权、脱敏范围、Key 申请说明和调用汇总字段</td></tr><tr><th scope="row">11-23</th><td>发布主文与 Document 图卡</td><td>按机构身份 → 开放/Key → 调用 → 定时反馈的顺序展示完整使用路径</td></tr><tr><th scope="row">11-24</th><td>发布实机演示</td><td>分别演示开放 Skill 直接添加、Key Skill 联系券商后连接使用</td></tr><tr><th scope="row">11-25</th><td>发布 FAQ</td><td>回答“何时不设 Key”“用户如何申请 Key”“调用汇总如何用于服务评价”</td></tr><tr><th scope="row">11-26</th><td>定向机构沟通</td><td>邀请分析师提交方法候选，并记录其开放或 Key 偏好</td></tr><tr><th scope="row">11-27</th><td>首轮复盘</td><td>汇总卖方对署名、Key、调用反馈和白名单流程的实际问题</td></tr></tbody></table></div></section><p>主文、图卡、视频与定向邀请必须使用同一套顺序，避免图卡讲操作、主文却仍讲抽象趋势。</p><hr></section><section class="section" id="s9"><h2><span class="no">09 / 10</span>八、复盘指标：分别看开放与 Key，不看单一热度</h2><section class="data-table" data-table-root aria-label="环节与建议观察"><div class="data-table__head"><div><h3>表 06｜环节与建议观察</h3></div></div><div class="table-scroll" tabindex="0" role="region" aria-label="数据表，可横向滚动"><table><thead><tr><th scope="col" class="">环节</th><th scope="col" class="">建议观察</th><th scope="col" class="">用途</th></tr></thead><tbody><tr><th scope="row">机构供给</th><td>邀请、机构身份点亮、署名 Skill 上传、版本更新</td><td>判断卖方是否真正参与并持续维护</td></tr><tr><th scope="row">开放路径</th><td>曝光、添加、有效调用、跨日复用</td><td>判断开放 Skill 是否进入买方工作流</td></tr><tr><th scope="row">Key 路径</th><td>申请、白名单开通、授权连接、有效调用</td><td>判断权限门槛是否被顺利完成，以及是否承接真实服务</td></tr><tr><th scope="row">调用反馈</th><td>汇总送达、分析师查看、方法迭代、服务复盘</td><td>判断调用数据是否真正帮助卖方改进服务</td></tr><tr><th scope="row">服务评价</th><td>买方对研究服务的评价及后续派点依据使用情况</td><td>判断调用反馈是否进入实际服务评价流程</td></tr></tbody></table></div></section><p>指标未形成稳定口径前，不做卖方排行榜，不宣传曝光提升比例，不把 Key 申请量直接等同于获客，不把调用量直接换算为派点或收入。</p><hr></section><section class="section" id="s10"><h2><span class="no">10 / 10</span>九、发布前只需确认操作细节，不再质疑功能主线</h2><ol class="plain">
+<li>两张截图是否获准对外使用，分析师姓名、机构名、Skill 名称、标的信息与观点结论分别如何处理。</li>
+<li>无 Key Skill 的“增加曝光”具体发生在哪些社区位置，文案是否需要统一为“增加曝光机会”。</li>
+<li>Key 的申请入口、券商联系人、白名单确认、授权连接、撤销与有效期说明。</li>
+<li>调用汇总的实际周期、送达方式、统计口径和字段，尤其是有效调用与跨日复用是否可得。</li>
+<li>“作为买方打分、派点依据”的对外标准表述，避免被进一步改写为固定派点公式或收益承诺。</li>
+<li>是否展示界面现有热度数值；默认不展示，也不比较开放与 Key 的热度。</li>
+<li>所有截图保持真实界面，不重绘成另一套按钮或权限流程；脱敏只覆盖敏感值，不改变实际操作含义。</li>
+</ol>
+<p><strong>最终收束：这篇图文要让卖方看完就明白——先通过机构服务邀请点亮身份并上传 Skill，再根据服务目标选择开放或 Key；买方调用后，平台定时反馈使用情况，帮助卖方把方法曝光、服务评价与白名单经营连接起来。</strong></p></section>
+<footer class="footer"><p>本报告由 AlphaClaw 基于相关资料整理生成，仅供研究参考，不构成投资建议。</p></footer>
+</article>
+</div>
+</div>
+</div>
+<button type="button" class="toc-fab" id="tocFab" aria-expanded="false" aria-controls="tocOverlay">目录</button><div class="toc-overlay" id="tocOverlay"><div class="toc-sheet" role="dialog" aria-modal="true" aria-label="目录"><h3>报告目录</h3><ol><li><a href="#s1" data-label="核心判断：这不是社区概念介绍，而是卖方使用指南"><span class="no">01</span><span class="txt">核心判断：这不是社区概念介绍，而是卖方使用指南</span></a></li><li><a href="#s2" data-label="一、策划定位：让卖方看完就知道“我怎么用”"><span class="no">02</span><span class="txt">一、策划定位：让卖方看完就知道“我怎么用”</span></a></li><li><a href="#s3" data-label="二、核心卖点：卖方得到的不是单一上架位置，而是一条服务链"><span class="no">03</span><span class="txt">二、核心卖点：卖方得到的不是单一上架位置，而是一条服务链</span></a></li><li><a href="#s4" data-label="三、真实界面怎么用：一张证明开放，一张证明 Key"><span class="no">04</span><span class="txt">三、真实界面怎么用：一张证明开放，一张证明 Key</span></a></li><li><a href="#s5" data-label="四、卖方使用路径：从机构邀请开始"><span class="no">05</span><span class="txt">四、卖方使用路径：从机构邀请开始</span></a></li><li><a href="#s6" data-label="五、主文与图卡结构：按真实操作顺序讲"><span class="no">06</span><span class="txt">五、主文与图卡结构：按真实操作顺序讲</span></a></li><li><a href="#s7" data-label="六、可直接改写的传播文案"><span class="no">07</span><span class="txt">六、可直接改写的传播文案</span></a></li><li><a href="#s8" data-label="七、内容制作与发布节奏"><span class="no">08</span><span class="txt">七、内容制作与发布节奏</span></a></li><li><a href="#s9" data-label="八、复盘指标：分别看开放与 Key，不看单一热度"><span class="no">09</span><span class="txt">八、复盘指标：分别看开放与 Key，不看单一热度</span></a></li><li><a href="#s10" data-label="九、发布前只需确认操作细节，不再质疑功能主线"><span class="no">10</span><span class="txt">九、发布前只需确认操作细节，不再质疑功能主线</span></a></li></ol></div></div>
+<div class="ref-modal" id="refModal" role="dialog" aria-modal="true" aria-labelledby="refModalTitle" aria-hidden="true">
+  <div class="ref-modal__box"><div class="ref-modal__head">
+    <h3 id="refModalTitle">引用来源</h3>
+    <button type="button" class="ref-modal__close" id="refModalClose" aria-label="关闭">×</button>
+  </div><div id="refModalBody"></div></div>
+</div>
+<script>
+/* ============================================================
+   AlphaClaw 报告 HTML 通用交互（report_renderer 内联）
+   能力：引用角标弹窗（联动高亮同源角标）/ 目录（桌面+移动）/
+        图表·数据表双视图 / 章节与图表入场淡入（渐进增强）。
+        ECharts 与 Mermaid 从熵简静态资源加载，其余交互为原生 JS，无构建。
+   ============================================================ */
+(function(){
+'use strict';
+var $ = function(s,c){return (c||document).querySelector(s);};
+var $all = function(s,c){return Array.prototype.slice.call((c||document).querySelectorAll(s));};
+
+/* ===== 数据注入（渲染器替换） ===== */
+var REFS = /*__REFS__*/{};
+var CHARTS = /*__CHARTS__*/{};
+var HAS_MERMAID = /*__HAS_MERMAID__*/false;
+
+/* ================= 引用角标弹窗 ================= */
+var modal = $('#refModal'), modalBody = $('#refModalBody'), lastRefTrigger = null;
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function openRefs(ids, trigger){
+  lastRefTrigger = trigger || document.activeElement;
+  var html = ids.map(function(id){
+    var r = REFS[id];
+    if(!r) return '<div class="ref-item"><div class="rt">未找到来源：'+esc(id)+'</div></div>';
+    var meta = [r.i,r.d,r.k].filter(Boolean).map(esc).join('</span><span>');
+    // Only web links are usable in a reference modal; never embed other protocols.
+    var link = /^https?:\/\//i.test(r.u || '') ? '<br><a class="ru" href="'+esc(r.u)+'" target="_blank" rel="noopener noreferrer">'+esc(r.u)+'</a>' : '';
+    return '<div class="ref-item"><div class="rt">'+esc(r.t)+'</div>'
+      + '<div class="rm"><span>'+meta+'</span></div>'
+      + '<div class="rid">'+esc(id)+'</div>'+link+'</div>';
+  }).join('');
+  modalBody.innerHTML = html;
+  modal.classList.add('open'); modal.setAttribute('aria-hidden','false');
+  $('#refModalClose').focus();
+}
+function closeRefs(){
+  modal.classList.remove('open'); modal.setAttribute('aria-hidden','true');
+  // 关闭来源弹窗后把焦点还给触发角标，避免键盘用户丢回页面顶部。
+  if(lastRefTrigger){ lastRefTrigger.focus(); lastRefTrigger = null; }
+}
+document.addEventListener('click', function(e){
+  var node = e.target.closest('.ref-node');
+  if(node){ openRefs(node.getAttribute('data-refs').split(','), node); return; }
+  if(modal && (e.target === modal || e.target.closest('#refModalClose'))) closeRefs();
+});
+
+/* 同一来源的角标可能在正文多处出现：悬停/聚焦任一处时，一起高亮，帮助读者看到"这个数字还在哪里被引用过" */
+(function(){
+  function setActive(ids, on){
+    ids.forEach(function(id){
+      $all('.ref-node[data-refs]').forEach(function(n){
+        if(n.getAttribute('data-refs').split(',').indexOf(id) === -1) return;
+        n.classList.toggle('ref-active', on);
+      });
+    });
+  }
+  document.addEventListener('mouseover', function(e){
+    var node = e.target.closest('.ref-node');
+    if(node) setActive(node.getAttribute('data-refs').split(','), true);
+  });
+  document.addEventListener('mouseout', function(e){
+    var node = e.target.closest('.ref-node');
+    if(node) setActive(node.getAttribute('data-refs').split(','), false);
+  });
+  document.addEventListener('focusin', function(e){
+    var node = e.target.closest('.ref-node');
+    if(node) setActive(node.getAttribute('data-refs').split(','), true);
+  });
+  document.addEventListener('focusout', function(e){
+    var node = e.target.closest('.ref-node');
+    if(node) setActive(node.getAttribute('data-refs').split(','), false);
+  });
+})();
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape'){
+    if(modal && modal.classList.contains('open')) closeRefs();
+    var ov = $('#tocOverlay'), fab = $('#tocFab');
+    if(ov && ov.classList.contains('open')){
+      ov.classList.remove('open');
+      if(fab) fab.setAttribute('aria-expanded','false');
+      if(fab) fab.focus();
+    }
+  }
+});
+
+/* ================= 目录：收起 / 移动弹层 / 滚动高亮 ================= */
+(function(){
+  var toc = $('#toc'), collapse = $('#tocCollapse'), fab = $('#tocFab'), overlay = $('#tocOverlay');
+  document.addEventListener('click', function(e){
+    var link = e.target.closest('#toc a[href^="#"], #tocOverlay a[href^="#"]');
+    if(!link) return;
+    var target = document.getElementById(link.getAttribute('href').slice(1));
+    if(!target) return;
+    // srcdoc 沙箱中默认片段导航会加载 about:blank，须在当前文档内滚动。
+    e.preventDefault();
+    target.scrollIntoView({block:'start'});
+  });
+  if(collapse){
+    collapse.addEventListener('click', function(){
+      var c = toc.classList.toggle('is-collapsed');
+      collapse.textContent = c ? '展开' : '收起';
+      collapse.setAttribute('aria-expanded', c ? 'false' : 'true');
+    });
+  }
+  if(fab && overlay){
+    fab.addEventListener('click', function(){ overlay.classList.add('open'); fab.setAttribute('aria-expanded','true'); });
+    overlay.addEventListener('click', function(e){
+      if(e.target === overlay || e.target.closest('a')){
+        overlay.classList.remove('open'); fab.setAttribute('aria-expanded','false');
+      }
+    });
+  }
+  var links = $all('#toc a[href^="#"]');
+  var sections = $all('.section[id]');
+  if('IntersectionObserver' in window && links.length){
+    var byId = {};
+    links.forEach(function(l){ var id = l.getAttribute('href').slice(1); (byId[id] = byId[id]||[]).push(l); });
+    var spy = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(!en.isIntersecting) return;
+        links.forEach(function(l){ l.removeAttribute('aria-current'); });
+        (byId[en.target.id]||[]).forEach(function(l){ l.setAttribute('aria-current','location'); });
+      });
+    }, { rootMargin:'-15% 0px -70% 0px', threshold:0 });
+    sections.forEach(function(s){ spy.observe(s); });
+  }
+})();
+
+/* ================= 图表 / 数据表双视图 ================= */
+function setView(viz, view, instances){
+  var isChart = view === 'chart';
+  $all('.seg [data-view]', viz).forEach(function(b){
+    var selected = b.getAttribute('data-view') === view;
+    b.setAttribute('aria-selected', selected ? 'true' : 'false');
+    // 只有当前 Tab 进入自然 Tab 顺序，方向键在两项间移动，符合 ARIA Tabs 模式。
+    b.setAttribute('tabindex', selected ? '0' : '-1');
+  });
+  var chartDiv = $('.chart-view', viz), tableDiv = $('.table-view', viz);
+  if(chartDiv) chartDiv.hidden = !isChart;
+  if(tableDiv) tableDiv.hidden = isChart;
+  if(isChart && chartDiv && instances[chartDiv.id]) instances[chartDiv.id].resize();
+}
+
+function hydrateFn(o){
+  // 把渲染器注入的函数占位串替换成真实 JS 函数（JSON 无法携带函数）
+  if(o === null || typeof o !== 'object') return;
+  if(Array.isArray(o)){ o.forEach(hydrateFn); return; }
+  Object.keys(o).forEach(function(k){
+    if(o[k] === '@@fn_percent@@'){ o[k] = function(v){ return (v==null?'—':v) + '%'; }; }
+    else if(o[k] && typeof o[k] === 'object'){ hydrateFn(o[k]); }
+  });
+}
+
+(function(){
+  var instances = {};
+  var hasECharts = typeof window.echarts !== 'undefined';
+  Object.keys(CHARTS).forEach(function(id){ hydrateFn(CHARTS[id]); });
+  if(hasECharts){
+    Object.keys(CHARTS).forEach(function(id){
+      var el = document.getElementById(id);
+      if(!el) return;
+      var inst = window.echarts.init(el);
+      inst.setOption(CHARTS[id]);
+      instances[id] = inst;
+    });
+  }
+  $all('[data-viz]').forEach(function(viz){
+    var fb = $('[data-viz-fallback]', viz);
+    if(!hasECharts){ setView(viz,'table',instances); if(fb) fb.hidden = false; }
+    else { setView(viz,'chart',instances); }
+    $all('.seg [data-view]', viz).forEach(function(btn){
+      btn.addEventListener('click', function(){ setView(viz, btn.getAttribute('data-view'), instances); });
+      btn.addEventListener('keydown', function(e){
+        var tabs = $all('.seg [data-view]', viz);
+        var current = tabs.indexOf(btn), next = -1;
+        if(e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (current + 1) % tabs.length;
+        else if(e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (current - 1 + tabs.length) % tabs.length;
+        else if(e.key === 'Home') next = 0;
+        else if(e.key === 'End') next = tabs.length - 1;
+        if(next < 0) return;
+        e.preventDefault();
+        setView(viz, tabs[next].getAttribute('data-view'), instances);
+        tabs[next].focus();
+      });
+    });
+  });
+  window.addEventListener('resize', function(){
+    Object.keys(instances).forEach(function(id){ instances[id].resize(); });
+  });
+})();
+
+/* ================= Mermaid（库由渲染器内联，无外网依赖） ================= */
+if(HAS_MERMAID){
+  // 离线交付：mermaid.min.js 已由渲染器内联在本页前面的 <script> 里，这里不再请求 CDN。
+  // 库缺失时保留原始代码块（可见降级），不静默联网兜底。
+  if(window.mermaid){
+    window.mermaid.initialize({startOnLoad:false, theme:'neutral', securityLevel:'strict'});
+    try { window.mermaid.run({querySelector:'.mermaid'}); } catch(e){}
+  }
+}
+
+/* ================= 配图放大（离线灯箱） ================= */
+(function(){
+  var overlay = null, zoomTrigger = null;
+  function closeZoom(){
+    if(!overlay) return;
+    overlay.remove();
+    overlay = null;
+    document.body.style.overflow = '';
+    if(zoomTrigger){ zoomTrigger.focus(); zoomTrigger = null; }
+  }
+  function openZoom(btn){
+    var source = btn.querySelector('img');
+    if(!source || overlay) return;
+    zoomTrigger = btn;
+    overlay = document.createElement('div');
+    overlay.className = 'zoom-modal';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-label', '配图放大');
+    var big = document.createElement('img');
+    big.src = source.src;
+    big.alt = source.alt || '';
+    var closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'zoom-modal__close';
+    closeBtn.textContent = '关闭 (Esc)';
+    closeBtn.addEventListener('click', closeZoom);
+    overlay.appendChild(big);
+    overlay.appendChild(closeBtn);
+    overlay.addEventListener('click', function(e){ if(e.target === overlay) closeZoom(); });
+    document.body.appendChild(overlay);
+    document.body.style.overflow = 'hidden';
+    closeBtn.focus();
+  }
+  document.addEventListener('click', function(e){
+    if(!(e.target instanceof Element)) return;
+    var btn = e.target.closest('[data-zoom]');
+    if(btn){ openZoom(btn); }
+  });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeZoom(); });
+})();
+
+/* ================= 阅读进度（顶部朱红细线） ================= */
+(function(){
+  var bar = document.getElementById('readProgress');
+  if(!bar) return;
+  var raf = 0;
+  function update(){
+    raf = 0;
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    var ratio = max > 0 ? Math.min(1, Math.max(0, h.scrollTop / max)) : 0;
+    bar.style.transform = 'scaleX(' + ratio + ')';
+  }
+  window.addEventListener('scroll', function(){ if(!raf) raf = requestAnimationFrame(update); }, { passive: true });
+  window.addEventListener('resize', update);
+  update();
+})();
+
+/* ================= 章节 / 图表入场淡入（渐进增强） =================
+   先标记 reveal，再滚入视口时补 in；不支持 IntersectionObserver 或打印时直接跳过，
+   内容本身不依赖这段 JS 才能显示（见 styles.css 的 .js-anim 前缀写法）。
+   兜底：截图/导出工具等没有真实滚动行为的场景，3s 后把尚未显示的内容也标记为 in，
+   避免"从未滚动过"的区域在这类场景下永久停留在 opacity:0。 */
+function bindReveal(){
+  if(!('IntersectionObserver' in window)) return;
+  var targets = $all('.section, .viz');
+  if(!targets.length) return;
+  document.documentElement.classList.add('js-anim');
+  targets.forEach(function(el){ el.classList.add('reveal'); });
+  var io = new IntersectionObserver(function(entries, obs){
+    entries.forEach(function(en){
+      if(!en.isIntersecting) return;
+      en.target.classList.add('in');
+      obs.unobserve(en.target);
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -8% 0px' });
+  targets.forEach(function(el){ io.observe(el); });
+  setTimeout(function(){
+    targets.forEach(function(el){ el.classList.add('in'); });
+    io.disconnect();
+  }, 3000);
+}
+
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', function(){ bindReveal(); });
+} else { bindReveal(); }
+})();
+
+</script>
+</body></html>
